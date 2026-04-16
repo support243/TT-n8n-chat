@@ -1,436 +1,366 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>n8n Agent Chat</title>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <title>TechnoTest — Support Chat</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #0d0f12;
-      --surface:   #141720;
-      --border:    #232733;
-      --accent:    #4fffb0;
-      --accent-dim:#1a3d2e;
-      --text:      #e2e8f0;
-      --muted:     #5a6480;
-      --user-bg:   #1b2035;
-      --bot-bg:    #111418;
-      --danger:    #ff5f6d;
-      --radius:    10px;
+      --bg:          #f5f4f0;
+      --surface:     #ffffff;
+      --border:      #e4e2db;
+      --accent:      #2563eb;
+      --accent-light:#eff4ff;
+      --text:        #1a1917;
+      --muted:       #8a8780;
+      --user-bg:     #2563eb;
+      --user-text:   #ffffff;
+      --bot-bg:      #ffffff;
+      --bot-border:  #e4e2db;
+      --danger:      #dc2626;
+      --radius:      14px;
+      --shadow:      0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.04);
     }
 
     html, body {
       height: 100%;
       background: var(--bg);
       color: var(--text);
-      font-family: 'IBM Plex Sans', sans-serif;
+      font-family: 'DM Sans', sans-serif;
       font-size: 15px;
       line-height: 1.6;
     }
 
-    /* ── LAYOUT ── */
     .app {
       display: grid;
       grid-template-rows: auto 1fr auto;
       height: 100dvh;
-      max-width: 760px;
+      max-width: 720px;
       margin: 0 auto;
     }
 
-    /* ── HEADER ── */
+    /* HEADER */
     header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 14px 20px;
-      border-bottom: 1px solid var(--border);
+      padding: 16px 22px;
       background: var(--surface);
-      gap: 12px;
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      position: relative; z-index: 1;
     }
-    .header-left { display: flex; align-items: center; gap: 10px; }
-    .status-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
+    .header-left { display: flex; align-items: center; gap: 12px; }
+
+    .avatar {
+      width: 38px; height: 38px;
       background: var(--accent);
-      box-shadow: 0 0 6px var(--accent);
-      animation: pulse 2.4s ease-in-out infinite;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'DM Serif Display', serif;
+      font-size: 18px; color: #fff; flex-shrink: 0;
     }
-    @keyframes pulse {
-      0%,100% { opacity: 1; } 50% { opacity: 0.4; }
+    .agent-name { font-weight: 600; font-size: 15px; color: var(--text); }
+    .agent-status {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 12px; color: var(--muted); margin-top: 1px;
     }
-    .agent-name {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--accent);
-      letter-spacing: 0.06em;
+    .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #22c55e;
+      animation: pulse 2.5s ease-in-out infinite;
     }
-    .agent-sub {
-      font-size: 11px;
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .reset-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: none;
+      border: 1px solid var(--border);
       color: var(--muted);
-      font-family: 'IBM Plex Mono', monospace;
+      border-radius: 8px;
+      padding: 7px 13px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 500;
+      cursor: pointer;
+      transition: border-color .18s, color .18s, background .18s;
     }
+    .reset-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+    .reset-btn svg { width: 14px; height: 14px; }
 
-    /* settings toggle */
-    .settings-btn {
-      background: none; border: 1px solid var(--border);
-      color: var(--muted); border-radius: 6px;
-      padding: 5px 10px; cursor: pointer; font-size: 12px;
-      font-family: 'IBM Plex Mono', monospace;
-      transition: border-color .2s, color .2s;
-    }
-    .settings-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-    /* ── SETTINGS PANEL ── */
-    #settings-panel {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 14px 20px;
-      display: none;
-      gap: 12px;
-      flex-direction: column;
-    }
-    #settings-panel.open { display: flex; }
-    .setting-row {
-      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
-    }
-    .setting-row label {
-      font-size: 11px; color: var(--muted);
-      font-family: 'IBM Plex Mono', monospace;
-      min-width: 90px;
-    }
-    .setting-row input {
-      flex: 1; background: var(--bg); border: 1px solid var(--border);
-      color: var(--text); border-radius: 6px; padding: 7px 10px;
-      font-family: 'IBM Plex Mono', monospace; font-size: 12px;
-      outline: none; min-width: 0;
-      transition: border-color .2s;
-    }
-    .setting-row input:focus { border-color: var(--accent); }
-    .save-btn {
-      align-self: flex-end;
-      background: var(--accent-dim); border: 1px solid var(--accent);
-      color: var(--accent); border-radius: 6px;
-      padding: 6px 14px; cursor: pointer; font-size: 12px;
-      font-family: 'IBM Plex Mono', monospace; font-weight: 600;
-      transition: background .2s;
-    }
-    .save-btn:hover { background: #1f5c42; }
-    .settings-note { font-size: 11px; color: var(--muted); }
-
-    /* ── MESSAGES ── */
+    /* MESSAGES */
     #messages {
       overflow-y: auto;
-      padding: 20px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
+      padding: 24px 18px;
+      display: flex; flex-direction: column;
+      gap: 16px;
       scroll-behavior: smooth;
+      background: var(--bg);
     }
     #messages::-webkit-scrollbar { width: 4px; }
-    #messages::-webkit-scrollbar-track { background: transparent; }
-    #messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    #messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .empty-state {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 10px; text-align: center; padding: 48px 24px;
+      color: var(--muted); animation: fadeIn .4s ease;
+    }
+    .empty-icon {
+      width: 52px; height: 52px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; margin-bottom: 4px;
+      box-shadow: var(--shadow);
+    }
+    .empty-state h3 { font-size: 15px; font-weight: 600; color: var(--text); }
+    .empty-state p  { font-size: 13px; color: var(--muted); }
 
     .msg {
-      display: flex;
-      flex-direction: column;
-      max-width: 82%;
-      animation: fadeUp .25s ease both;
+      display: flex; flex-direction: column;
+      max-width: 78%;
+      animation: fadeUp .22s ease both;
     }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(7px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
     .msg.user { align-self: flex-end; align-items: flex-end; }
     .msg.bot  { align-self: flex-start; align-items: flex-start; }
 
     .bubble {
-      padding: 11px 15px;
+      padding: 11px 16px;
       border-radius: var(--radius);
-      font-size: 14px;
-      line-height: 1.65;
-      white-space: pre-wrap;
-      word-break: break-word;
+      font-size: 14.5px; line-height: 1.65;
+      white-space: pre-wrap; word-break: break-word;
     }
     .msg.user .bubble {
-      background: var(--user-bg);
-      border: 1px solid #2b3250;
-      border-bottom-right-radius: 3px;
-      color: #c9d4f0;
+      background: var(--user-bg); color: var(--user-text);
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 2px 8px rgba(37,99,235,.22);
     }
     .msg.bot .bubble {
-      background: var(--bot-bg);
-      border: 1px solid var(--border);
-      border-bottom-left-radius: 3px;
-      color: var(--text);
+      background: var(--bot-bg); color: var(--text);
+      border: 1px solid var(--bot-border);
+      border-bottom-left-radius: 4px;
+      box-shadow: var(--shadow);
     }
-    .msg.error .bubble {
-      border-color: var(--danger);
-      color: var(--danger);
-      background: #1a0e10;
-    }
+    .msg.error .bubble { background: #fef2f2; border-color: #fecaca; color: var(--danger); }
 
-    .meta {
-      font-size: 10px; color: var(--muted);
-      font-family: 'IBM Plex Mono', monospace;
-      margin-top: 4px; padding: 0 4px;
-    }
+    .meta { font-size: 11px; color: var(--muted); margin-top: 5px; padding: 0 4px; }
 
-    /* typing indicator */
-    .typing-bubble { display: flex; align-items: center; gap: 5px; padding: 14px 18px; }
+    .typing-bubble { display:flex; align-items:center; gap:5px; padding:14px 18px; }
     .typing-bubble span {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: var(--muted); display: inline-block;
-      animation: bounce 1.2s infinite;
+      width:7px; height:7px; border-radius:50%;
+      background: var(--border); display:inline-block;
+      animation: bounce 1.3s infinite;
     }
-    .typing-bubble span:nth-child(2) { animation-delay: .2s; }
-    .typing-bubble span:nth-child(3) { animation-delay: .4s; }
+    .typing-bubble span:nth-child(2){animation-delay:.18s}
+    .typing-bubble span:nth-child(3){animation-delay:.36s}
     @keyframes bounce {
-      0%,60%,100% { transform: translateY(0); }
-      30% { transform: translateY(-5px); background: var(--accent); }
+      0%,60%,100%{transform:translateY(0);background:var(--border)}
+      30%{transform:translateY(-5px);background:var(--accent)}
     }
 
-    /* empty state */
-    .empty-state {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 8px; color: var(--muted); text-align: center;
-      padding: 40px 20px;
-      font-family: 'IBM Plex Mono', monospace;
-    }
-    .empty-state .icon { font-size: 32px; margin-bottom: 4px; }
-    .empty-state p { font-size: 12px; line-height: 1.8; }
-
-    /* ── INPUT BAR ── */
+    /* FOOTER */
     footer {
-      padding: 14px 16px;
-      border-top: 1px solid var(--border);
       background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 14px 18px 16px;
+      box-shadow: 0 -1px 4px rgba(0,0,0,.04);
     }
-    .input-row {
-      display: flex; gap: 10px; align-items: flex-end;
-    }
+    .input-row { display:flex; gap:10px; align-items:flex-end; }
+
     #user-input {
       flex: 1;
       background: var(--bg);
       border: 1px solid var(--border);
       color: var(--text);
-      border-radius: 8px;
+      border-radius: 10px;
       padding: 10px 14px;
-      font-family: 'IBM Plex Sans', sans-serif;
-      font-size: 14px;
-      outline: none;
-      resize: none;
-      min-height: 44px;
-      max-height: 140px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14.5px; outline: none;
+      resize: none; min-height: 44px; max-height: 130px;
       line-height: 1.5;
-      transition: border-color .2s;
+      transition: border-color .18s, box-shadow .18s;
     }
-    #user-input:focus { border-color: var(--accent); }
-    #user-input::placeholder { color: var(--muted); }
+    #user-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+    #user-input::placeholder { color: #b8b5ae; }
 
     #send-btn {
-      background: var(--accent);
-      border: none; border-radius: 8px;
-      color: #0a1a12;
-      width: 44px; height: 44px;
+      background: var(--accent); border: none; border-radius: 10px;
+      color: #fff; width: 44px; height: 44px;
       cursor: pointer; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
-      font-size: 18px;
-      transition: opacity .2s, transform .1s;
+      transition: opacity .18s, transform .1s, box-shadow .18s;
+      box-shadow: 0 2px 8px rgba(37,99,235,.3);
     }
-    #send-btn:hover { opacity: 0.85; }
-    #send-btn:active { transform: scale(.95); }
-    #send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    #send-btn:hover  { opacity:.88; box-shadow:0 4px 12px rgba(37,99,235,.35); }
+    #send-btn:active { transform:scale(.95); }
+    #send-btn:disabled { opacity:.35; cursor:not-allowed; box-shadow:none; }
 
-    .footer-hint {
-      font-size: 10px; color: var(--muted);
-      font-family: 'IBM Plex Mono', monospace;
-      margin-top: 7px; text-align: center;
-    }
+    .footer-hint { font-size:11px; color:#c0bdb8; margin-top:8px; text-align:center; }
 
-    /* ── CONFIG WARNING ── */
-    #config-warning {
-      background: #1a140a;
-      border: 1px solid #5a3e10;
-      color: #e0a040;
-      font-size: 12px;
-      font-family: 'IBM Plex Mono', monospace;
-      padding: 8px 16px;
-      text-align: center;
-      display: none;
+    /* TOAST */
+    #toast {
+      position:fixed; bottom:80px; left:50%;
+      transform:translateX(-50%) translateY(10px);
+      background:#1a1917; color:#fff;
+      font-size:13px; padding:8px 16px;
+      border-radius:8px;
+      opacity:0; pointer-events:none;
+      transition:opacity .2s, transform .2s;
+      white-space:nowrap;
     }
-    #config-warning.show { display: block; }
+    #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   </style>
 </head>
 <body>
 <div class="app">
 
-  <!-- HEADER -->
   <header>
     <div class="header-left">
-      <div class="status-dot"></div>
+      <div class="avatar">T</div>
       <div>
-        <div class="agent-name">n8n Support Agent</div>
-        <div class="agent-sub">webhook · sync mode</div>
+        <div class="agent-name">TechnoTest Assistant</div>
+        <div class="agent-status"><span class="dot"></span> Online</div>
       </div>
     </div>
-    <button class="settings-btn" onclick="toggleSettings()">⚙ config</button>
+    <button class="reset-btn" onclick="resetConversation()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1.5 8A6.5 6.5 0 1 0 3.4 3.4"/>
+        <path d="M1.5 3.5v3.5H5"/>
+      </svg>
+      New conversation
+    </button>
   </header>
 
-  <!-- SETTINGS PANEL -->
-  <div id="settings-panel">
-    <div class="setting-row">
-      <label>Webhook URL</label>
-      <input type="url" id="webhook-url" placeholder="https://your-n8n.app.n8n.cloud/webhook/..." />
-    </div>
-    <div class="setting-row">
-      <label>API Key</label>
-      <input type="password" id="api-key" placeholder="Optional — sent as x-api-key header" />
-    </div>
-    <div class="setting-row">
-      <label>Session ID</label>
-      <input type="text" id="session-id" placeholder="Auto-generated" />
-    </div>
-    <button class="save-btn" onclick="saveSettings()">Save & Close</button>
-    <span class="settings-note">Settings are saved in your browser (localStorage).</span>
-  </div>
-
-  <!-- CONFIG WARNING -->
-  <div id="config-warning">⚠ No webhook URL configured — open ⚙ config to set it up.</div>
-
-  <!-- MESSAGES -->
   <div id="messages">
     <div class="empty-state" id="empty-state">
-      <div class="icon">⬡</div>
-      <p>Configure your webhook above, then<br/>send a message to start testing.</p>
+      <div class="empty-icon">💬</div>
+      <h3>How can we help you today?</h3>
+      <p>Send a message to get started.</p>
     </div>
   </div>
 
-  <!-- INPUT -->
   <footer>
     <div class="input-row">
-      <textarea id="user-input" rows="1" placeholder="Type a message…" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
-      <button id="send-btn" onclick="sendMessage()" title="Send">➤</button>
+      <textarea id="user-input" rows="1"
+        placeholder="Type your message…"
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"></textarea>
+      <button id="send-btn" onclick="sendMessage()">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="10" y1="17" x2="10" y2="3"/>
+          <polyline points="4 9 10 3 16 9"/>
+        </svg>
+      </button>
     </div>
     <div class="footer-hint">Enter to send &nbsp;·&nbsp; Shift+Enter for new line</div>
   </footer>
 
 </div>
+<div id="toast"></div>
 
 <script>
-  // ── State ──────────────────────────────────────────────
+  // ── CONFIGURATION ──────────────────────────────────────
+  const WEBHOOK_URL = "https://n8n2.hsmart.xyz/webhook/test_chat";
+  const API_KEY     = "ujUXZ6hRo270DlhU62vsl0,s7dwCtfkUsfs4NTg";
+  // ──────────────────────────────────────────────────────
+
   let isWaiting = false;
+  let sessionId = generateSessionId();
 
   const $ = id => document.getElementById(id);
 
-  // ── Settings ───────────────────────────────────────────
-  function loadSettings() {
-    $('webhook-url').value = localStorage.getItem('n8n_webhook') || '';
-    $('api-key').value     = localStorage.getItem('n8n_apikey')  || '';
-    $('session-id').value  = localStorage.getItem('n8n_session') || generateSession();
-    checkConfig();
+  function generateSessionId() {
+    return Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
-  function saveSettings() {
-    localStorage.setItem('n8n_webhook', $('webhook-url').value.trim());
-    localStorage.setItem('n8n_apikey',  $('api-key').value.trim());
-    const sid = $('session-id').value.trim() || generateSession();
-    localStorage.setItem('n8n_session', sid);
-    $('session-id').value = sid;
-    toggleSettings(false);
-    checkConfig();
+  function resetConversation() {
+    sessionId = generateSessionId();
+    $('messages').innerHTML = `
+      <div class="empty-state" id="empty-state">
+        <div class="empty-icon">💬</div>
+        <h3>How can we help you today?</h3>
+        <p>Send a message to get started.</p>
+      </div>`;
+    showToast('New conversation started');
   }
 
-  function checkConfig() {
-    const warn = $('config-warning');
-    if (!localStorage.getItem('n8n_webhook')) {
-      warn.classList.add('show');
-    } else {
-      warn.classList.remove('show');
-    }
+  function showToast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
   }
 
-  function generateSession() {
-    return 'sess_' + Math.random().toString(36).slice(2, 10);
-  }
-
-  let settingsOpen = false;
-  function toggleSettings(force) {
-    settingsOpen = force !== undefined ? force : !settingsOpen;
-    $('settings-panel').classList.toggle('open', settingsOpen);
-  }
-
-  // ── Auto-resize textarea ───────────────────────────────
   function autoResize(el) {
     el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+    el.style.height = Math.min(el.scrollHeight, 130) + 'px';
   }
 
-  // ── Send message ───────────────────────────────────────
   function handleKey(e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   }
 
   async function sendMessage() {
     if (isWaiting) return;
-
-    const input   = $('user-input');
-    const text    = input.value.trim();
+    const input = $('user-input');
+    const text  = input.value.trim();
     if (!text) return;
 
-    const webhook = localStorage.getItem('n8n_webhook');
-    if (!webhook) {
-      toggleSettings(true);
-      return;
-    }
+    const empty = $('empty-state');
+    if (empty) empty.remove();
 
-    // Hide empty state
-    $('empty-state').style.display = 'none';
-
-    // Render user bubble
     appendMessage('user', text);
     input.value = '';
     input.style.height = 'auto';
 
-    // Show typing indicator
     const typingEl = appendTyping();
     isWaiting = true;
     $('send-btn').disabled = true;
 
     try {
-      const headers = { 'Content-Type': 'application/json' };
-      const apiKey = localStorage.getItem('n8n_apikey');
-      if (apiKey) headers['x-api-key'] = apiKey;
+      const payload = [
+        {
+          action:    "sendMessage",
+          sessionId: sessionId,
+          chatInput: text
+        }
+      ];
 
-      const body = {
-        message: text,
-        sessionId: localStorage.getItem('n8n_session') || generateSession()
-      };
+      const res = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-KEY':    API_KEY
+        },
+        body: JSON.stringify(payload)
+      });
 
-      const res  = await fetch(webhook, { method: 'POST', headers, body: JSON.stringify(body) });
       const data = await res.json();
-
       typingEl.remove();
 
-      // Try common response shapes from n8n AI agents
       const reply =
-        data?.output          ||   // AI Agent node default
-        data?.text            ||
-        data?.message         ||
-        data?.response        ||
-        data?.reply           ||
-        (Array.isArray(data) && (data[0]?.output || data[0]?.text || data[0]?.message)) ||
-        JSON.stringify(data, null, 2);  // fallback: show raw JSON
+        (Array.isArray(data) && (data[0]?.output || data[0]?.text || data[0]?.message || data[0]?.chatInput)) ||
+        data?.output   ||
+        data?.text     ||
+        data?.message  ||
+        data?.response ||
+        JSON.stringify(data, null, 2);
 
       appendMessage('bot', reply);
 
     } catch (err) {
       typingEl.remove();
-      appendMessage('bot', `⚠ Error: ${err.message}`, true);
+      appendMessage('bot', 'Something went wrong. Please try again.', true);
+      console.error(err);
     }
 
     isWaiting = false;
@@ -438,7 +368,6 @@
     input.focus();
   }
 
-  // ── DOM helpers ────────────────────────────────────────
   function appendMessage(role, text, isError = false) {
     const msgs = $('messages');
     const wrap = document.createElement('div');
@@ -450,7 +379,7 @@
 
     const meta = document.createElement('div');
     meta.className = 'meta';
-    meta.textContent = role === 'user' ? 'you' : 'agent';
+    meta.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     wrap.appendChild(bubble);
     wrap.appendChild(meta);
@@ -469,11 +398,7 @@
     return wrap;
   }
 
-  // ── Init ───────────────────────────────────────────────
-  loadSettings();
-
-  // Auto-open settings if not configured
-  if (!localStorage.getItem('n8n_webhook')) toggleSettings(true);
+  $('user-input').focus();
 </script>
 </body>
 </html>
