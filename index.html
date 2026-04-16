@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>n8n Agent Chat</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0f12;
+      --surface:   #141720;
+      --border:    #232733;
+      --accent:    #4fffb0;
+      --accent-dim:#1a3d2e;
+      --text:      #e2e8f0;
+      --muted:     #5a6480;
+      --user-bg:   #1b2035;
+      --bot-bg:    #111418;
+      --danger:    #ff5f6d;
+      --radius:    10px;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── LAYOUT ── */
+    .app {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      height: 100dvh;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      gap: 12px;
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; } 50% { opacity: 0.4; }
+    }
+    .agent-name {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+    }
+    .agent-sub {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* settings toggle */
+    .settings-btn {
+      background: none; border: 1px solid var(--border);
+      color: var(--muted); border-radius: 6px;
+      padding: 5px 10px; cursor: pointer; font-size: 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      transition: border-color .2s, color .2s;
+    }
+    .settings-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── SETTINGS PANEL ── */
+    #settings-panel {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      display: none;
+      gap: 12px;
+      flex-direction: column;
+    }
+    #settings-panel.open { display: flex; }
+    .setting-row {
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    }
+    .setting-row label {
+      font-size: 11px; color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+      min-width: 90px;
+    }
+    .setting-row input {
+      flex: 1; background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); border-radius: 6px; padding: 7px 10px;
+      font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+      outline: none; min-width: 0;
+      transition: border-color .2s;
+    }
+    .setting-row input:focus { border-color: var(--accent); }
+    .save-btn {
+      align-self: flex-end;
+      background: var(--accent-dim); border: 1px solid var(--accent);
+      color: var(--accent); border-radius: 6px;
+      padding: 6px 14px; cursor: pointer; font-size: 12px;
+      font-family: 'IBM Plex Mono', monospace; font-weight: 600;
+      transition: background .2s;
+    }
+    .save-btn:hover { background: #1f5c42; }
+    .settings-note { font-size: 11px; color: var(--muted); }
+
+    /* ── MESSAGES ── */
+    #messages {
+      overflow-y: auto;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      scroll-behavior: smooth;
+    }
+    #messages::-webkit-scrollbar { width: 4px; }
+    #messages::-webkit-scrollbar-track { background: transparent; }
+    #messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .msg {
+      display: flex;
+      flex-direction: column;
+      max-width: 82%;
+      animation: fadeUp .25s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .msg.user { align-self: flex-end; align-items: flex-end; }
+    .msg.bot  { align-self: flex-start; align-items: flex-start; }
+
+    .bubble {
+      padding: 11px 15px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .msg.user .bubble {
+      background: var(--user-bg);
+      border: 1px solid #2b3250;
+      border-bottom-right-radius: 3px;
+      color: #c9d4f0;
+    }
+    .msg.bot .bubble {
+      background: var(--bot-bg);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 3px;
+      color: var(--text);
+    }
+    .msg.error .bubble {
+      border-color: var(--danger);
+      color: var(--danger);
+      background: #1a0e10;
+    }
+
+    .meta {
+      font-size: 10px; color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+      margin-top: 4px; padding: 0 4px;
+    }
+
+    /* typing indicator */
+    .typing-bubble { display: flex; align-items: center; gap: 5px; padding: 14px 18px; }
+    .typing-bubble span {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--muted); display: inline-block;
+      animation: bounce 1.2s infinite;
+    }
+    .typing-bubble span:nth-child(2) { animation-delay: .2s; }
+    .typing-bubble span:nth-child(3) { animation-delay: .4s; }
+    @keyframes bounce {
+      0%,60%,100% { transform: translateY(0); }
+      30% { transform: translateY(-5px); background: var(--accent); }
+    }
+
+    /* empty state */
+    .empty-state {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 8px; color: var(--muted); text-align: center;
+      padding: 40px 20px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .empty-state .icon { font-size: 32px; margin-bottom: 4px; }
+    .empty-state p { font-size: 12px; line-height: 1.8; }
+
+    /* ── INPUT BAR ── */
+    footer {
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .input-row {
+      display: flex; gap: 10px; align-items: flex-end;
+    }
+    #user-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 14px;
+      outline: none;
+      resize: none;
+      min-height: 44px;
+      max-height: 140px;
+      line-height: 1.5;
+      transition: border-color .2s;
+    }
+    #user-input:focus { border-color: var(--accent); }
+    #user-input::placeholder { color: var(--muted); }
+
+    #send-btn {
+      background: var(--accent);
+      border: none; border-radius: 8px;
+      color: #0a1a12;
+      width: 44px; height: 44px;
+      cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      transition: opacity .2s, transform .1s;
+    }
+    #send-btn:hover { opacity: 0.85; }
+    #send-btn:active { transform: scale(.95); }
+    #send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .footer-hint {
+      font-size: 10px; color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+      margin-top: 7px; text-align: center;
+    }
+
+    /* ── CONFIG WARNING ── */
+    #config-warning {
+      background: #1a140a;
+      border: 1px solid #5a3e10;
+      color: #e0a040;
+      font-size: 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      padding: 8px 16px;
+      text-align: center;
+      display: none;
+    }
+    #config-warning.show { display: block; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-left">
+      <div class="status-dot"></div>
+      <div>
+        <div class="agent-name">n8n Support Agent</div>
+        <div class="agent-sub">webhook · sync mode</div>
+      </div>
+    </div>
+    <button class="settings-btn" onclick="toggleSettings()">⚙ config</button>
+  </header>
+
+  <!-- SETTINGS PANEL -->
+  <div id="settings-panel">
+    <div class="setting-row">
+      <label>Webhook URL</label>
+      <input type="url" id="webhook-url" placeholder="https://your-n8n.app.n8n.cloud/webhook/..." />
+    </div>
+    <div class="setting-row">
+      <label>API Key</label>
+      <input type="password" id="api-key" placeholder="Optional — sent as x-api-key header" />
+    </div>
+    <div class="setting-row">
+      <label>Session ID</label>
+      <input type="text" id="session-id" placeholder="Auto-generated" />
+    </div>
+    <button class="save-btn" onclick="saveSettings()">Save & Close</button>
+    <span class="settings-note">Settings are saved in your browser (localStorage).</span>
+  </div>
+
+  <!-- CONFIG WARNING -->
+  <div id="config-warning">⚠ No webhook URL configured — open ⚙ config to set it up.</div>
+
+  <!-- MESSAGES -->
+  <div id="messages">
+    <div class="empty-state" id="empty-state">
+      <div class="icon">⬡</div>
+      <p>Configure your webhook above, then<br/>send a message to start testing.</p>
+    </div>
+  </div>
+
+  <!-- INPUT -->
+  <footer>
+    <div class="input-row">
+      <textarea id="user-input" rows="1" placeholder="Type a message…" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button id="send-btn" onclick="sendMessage()" title="Send">➤</button>
+    </div>
+    <div class="footer-hint">Enter to send &nbsp;·&nbsp; Shift+Enter for new line</div>
+  </footer>
+
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────
+  let isWaiting = false;
+
+  const $ = id => document.getElementById(id);
+
+  // ── Settings ───────────────────────────────────────────
+  function loadSettings() {
+    $('webhook-url').value = localStorage.getItem('n8n_webhook') || '';
+    $('api-key').value     = localStorage.getItem('n8n_apikey')  || '';
+    $('session-id').value  = localStorage.getItem('n8n_session') || generateSession();
+    checkConfig();
+  }
+
+  function saveSettings() {
+    localStorage.setItem('n8n_webhook', $('webhook-url').value.trim());
+    localStorage.setItem('n8n_apikey',  $('api-key').value.trim());
+    const sid = $('session-id').value.trim() || generateSession();
+    localStorage.setItem('n8n_session', sid);
+    $('session-id').value = sid;
+    toggleSettings(false);
+    checkConfig();
+  }
+
+  function checkConfig() {
+    const warn = $('config-warning');
+    if (!localStorage.getItem('n8n_webhook')) {
+      warn.classList.add('show');
+    } else {
+      warn.classList.remove('show');
+    }
+  }
+
+  function generateSession() {
+    return 'sess_' + Math.random().toString(36).slice(2, 10);
+  }
+
+  let settingsOpen = false;
+  function toggleSettings(force) {
+    settingsOpen = force !== undefined ? force : !settingsOpen;
+    $('settings-panel').classList.toggle('open', settingsOpen);
+  }
+
+  // ── Auto-resize textarea ───────────────────────────────
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+  }
+
+  // ── Send message ───────────────────────────────────────
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+
+  async function sendMessage() {
+    if (isWaiting) return;
+
+    const input   = $('user-input');
+    const text    = input.value.trim();
+    if (!text) return;
+
+    const webhook = localStorage.getItem('n8n_webhook');
+    if (!webhook) {
+      toggleSettings(true);
+      return;
+    }
+
+    // Hide empty state
+    $('empty-state').style.display = 'none';
+
+    // Render user bubble
+    appendMessage('user', text);
+    input.value = '';
+    input.style.height = 'auto';
+
+    // Show typing indicator
+    const typingEl = appendTyping();
+    isWaiting = true;
+    $('send-btn').disabled = true;
+
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+      const apiKey = localStorage.getItem('n8n_apikey');
+      if (apiKey) headers['x-api-key'] = apiKey;
+
+      const body = {
+        message: text,
+        sessionId: localStorage.getItem('n8n_session') || generateSession()
+      };
+
+      const res  = await fetch(webhook, { method: 'POST', headers, body: JSON.stringify(body) });
+      const data = await res.json();
+
+      typingEl.remove();
+
+      // Try common response shapes from n8n AI agents
+      const reply =
+        data?.output          ||   // AI Agent node default
+        data?.text            ||
+        data?.message         ||
+        data?.response        ||
+        data?.reply           ||
+        (Array.isArray(data) && (data[0]?.output || data[0]?.text || data[0]?.message)) ||
+        JSON.stringify(data, null, 2);  // fallback: show raw JSON
+
+      appendMessage('bot', reply);
+
+    } catch (err) {
+      typingEl.remove();
+      appendMessage('bot', `⚠ Error: ${err.message}`, true);
+    }
+
+    isWaiting = false;
+    $('send-btn').disabled = false;
+    input.focus();
+  }
+
+  // ── DOM helpers ────────────────────────────────────────
+  function appendMessage(role, text, isError = false) {
+    const msgs = $('messages');
+    const wrap = document.createElement('div');
+    wrap.className = `msg ${role}${isError ? ' error' : ''}`;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = role === 'user' ? 'you' : 'agent';
+
+    wrap.appendChild(bubble);
+    wrap.appendChild(meta);
+    msgs.appendChild(wrap);
+    msgs.scrollTop = msgs.scrollHeight;
+    return wrap;
+  }
+
+  function appendTyping() {
+    const msgs = $('messages');
+    const wrap = document.createElement('div');
+    wrap.className = 'msg bot';
+    wrap.innerHTML = `<div class="bubble typing-bubble"><span></span><span></span><span></span></div>`;
+    msgs.appendChild(wrap);
+    msgs.scrollTop = msgs.scrollHeight;
+    return wrap;
+  }
+
+  // ── Init ───────────────────────────────────────────────
+  loadSettings();
+
+  // Auto-open settings if not configured
+  if (!localStorage.getItem('n8n_webhook')) toggleSettings(true);
+</script>
+</body>
+</html>
